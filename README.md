@@ -225,9 +225,15 @@ LimitNOFILE=65535
 ExecStart=/usr/bin/gobindfs -multimount /etc/gobindfs/config.json
 ExecStop=/usr/bin/gobindfs -umount-all
 
+# SIGTERM to the main process, followed by SIGKILL to the entire control group.
+KillMode=mixed
+
 # Graceful restart on unexpected failure
 Restart=on-failure
 RestartSec=30s
+
+# Ensures the Fuse mount point is cleaned up if the service fails
+TimeoutStopSec=20s
 
 [Install]
 WantedBy=multi-user.target
