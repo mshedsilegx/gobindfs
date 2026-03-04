@@ -1,0 +1,36 @@
+[Unit]
+Description=gobindfs mount for %I
+After=local-fs.target network-online.target sys-fs-fuse-connections.mount remote-fs.target
+# Require the specific configuration file for this instance to exist
+ConditionPathExists=/etc/gobindfs/%i.conf
+StartLimitIntervalSec=500
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=builder
+Group=users
+
+# Ensure the process isn't killed before it can finish unmounting
+KillMode=process
+
+# Read variables from the configuration file
+EnvironmentFile=/etc/gobindfs/%i.conf
+
+# Ensure destination directory exists before mounting
+ExecStartPre=+/usr/bin/mkdir -p ${MOUNTPOINT}
+ExecStartPre=+/usr/bin/chown builder:users ${MOUNTPOINT}
+
+# Use 'sh -c exec' to expand variables and keep the FUSE process as PID 1 of the service
+ExecStart=/usr/bin/bash -c 'exec /usr/bin/gobindfs ${OPTIONS} ${MOUNTPOINT} ${SOURCEPATH}'
+ExecStop=/usr/bin/gobindfs -umount ${MOUNTPOINT}
+
+# Graceful restart on unexpected failure
+Restart=on-failure
+RestartSec=30s
+
+# Ensures the Fuse mount point is cleaned up if the service fails
+TimeoutStopSec=20s
+
+[Install]
+WantedBy=multi-user.target

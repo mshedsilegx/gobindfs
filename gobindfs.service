@@ -1,0 +1,32 @@
+[Unit]
+Description=gobindfs multi-mount service
+After=local-fs.target network-online.target sys-fs-fuse-connections.mount remote-fs.target
+Before=shutdown.target
+ConditionPathExists=/etc/gobindfs/config.json
+StartLimitIntervalSec=500
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=builder
+Group=users
+
+# Optional: Add security limits if you expect high concurrent usage
+LimitNOFILE=65535
+
+# Start gobindfs in the foreground using the multi-mount JSON configuration
+ExecStart=/usr/bin/gobindfs -multimount /etc/gobindfs/config.json
+ExecStop=/usr/bin/gobindfs -umount-all
+
+# SIGTERM to the main process, followed by SIGKILL to the entire control group.
+KillMode=mixed
+
+# Graceful restart on unexpected failure
+Restart=on-failure
+RestartSec=30s
+
+# Ensures the Fuse mount point is cleaned up if the service fails
+TimeoutStopSec=20s
+
+[Install]
+WantedBy=multi-user.target
